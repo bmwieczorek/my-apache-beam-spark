@@ -1,0 +1,296 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+
+    <modelVersion>4.0.0</modelVersion>
+    <groupId>com.bawi</groupId>
+    <artifactId>my-apache-beam-spark</artifactId>
+    <version>0.1-SNAPSHOT</version>
+
+    <properties>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+
+        <beam.version>2.46.0</beam.version> <!-- profiling since 2.33 with service account with roles/cloudprofiler.agent -->
+        <spark.version>3.1.3</spark.version>
+        <slf4j.version>1.7.36</slf4j.version>
+        <log4j-api.version>2.19.0</log4j-api.version>
+
+        <!-- testing -->
+        <junit.version>4.13.2</junit.version>
+
+        <maven-compiler-plugin.version>3.10.1</maven-compiler-plugin.version>
+        <maven-shade-plugin.version>3.4.1</maven-shade-plugin.version>
+    </properties>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>${maven-compiler-plugin.version}</version>
+                <configuration>
+                    <source>1.8</source>
+                    <target>1.8</target>
+
+                    <!-- show compilation error when mvn compile -->
+                    <forceJavacCompilerUse>true</forceJavacCompilerUse>
+                </configuration>
+            </plugin>
+<!--            <plugin>-->
+<!--                <groupId>org.apache.maven.plugins</groupId>-->
+<!--                <artifactId>maven-enforcer-plugin</artifactId>-->
+<!--                <version>3.2.1</version>-->
+<!--                <executions>-->
+<!--                    <execution>-->
+<!--                        <id>enforce</id>-->
+<!--                        <goals>-->
+<!--                            <goal>enforce</goal>-->
+<!--                        </goals>-->
+<!--                        <configuration>-->
+<!--                            <rules>-->
+<!--                                <requireUpperBoundDeps/>-->
+<!--                            </rules>-->
+<!--                        </configuration>-->
+<!--                    </execution>-->
+<!--                </executions>-->
+<!--            </plugin>-->
+        </plugins>
+    </build>
+
+    <dependencies>
+
+        <dependency>
+            <groupId>org.apache.beam</groupId>
+            <artifactId>beam-sdks-java-core</artifactId>
+            <version>${beam.version}</version>
+        </dependency>
+
+        <!-- reqiured for BigQueryIO -->
+<!--        <dependency>-->
+<!--            <groupId>org.apache.beam</groupId>-->
+<!--            <artifactId>beam-sdks-java-io-google-cloud-platform</artifactId>-->
+<!--            <version>${beam.version}</version>-->
+<!--            <exclusions>-->
+<!--                <exclusion>-->
+<!--                    <groupId>com.google.cloud</groupId>-->
+<!--                    <artifactId>google-cloud-spanner</artifactId>-->
+<!--                </exclusion>-->
+<!--                <exclusion>-->
+<!--                    <groupId>com.google.cloud.bigtable</groupId>-->
+<!--                    <artifactId>bigtable-client-core</artifactId>-->
+<!--                </exclusion>-->
+<!--                <exclusion>-->
+<!--                    <groupId>com.google.cloud</groupId>-->
+<!--                    <artifactId>google-cloud-firestore</artifactId>-->
+<!--                </exclusion>-->
+<!--                <exclusion>-->
+<!--                    <groupId>com.google.cloud.bigtable</groupId>-->
+<!--                    <artifactId>bigtable-client-core</artifactId>-->
+<!--                </exclusion>-->
+<!--                <exclusion>-->
+<!--                    <groupId>com.google.cloud</groupId>-->
+<!--                    <artifactId>google-cloud-bigtable</artifactId>-->
+<!--                </exclusion>-->
+<!--                <exclusion>-->
+<!--                    <groupId>com.google.cloud.datastore</groupId>-->
+<!--                    <artifactId>datastore-v1-proto-client</artifactId>-->
+<!--                </exclusion>-->
+<!--                <exclusion>-->
+<!--                    <groupId>com.google.cloud</groupId>-->
+<!--                    <artifactId>google-cloud-pubsublite</artifactId>-->
+<!--                </exclusion>-->
+<!--                <exclusion>-->
+<!--                    <groupId>com.google.cloud</groupId>-->
+<!--                    <artifactId>google-cloud-pubsub</artifactId>-->
+<!--                </exclusion>-->
+<!--            </exclusions>-->
+<!--        </dependency>-->
+
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-api</artifactId>
+        </dependency>
+
+        <!-- to use log4j.properties and avoid SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder" -->
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-log4j12</artifactId>
+            <scope>runtime</scope>
+        </dependency>
+
+    </dependencies>
+
+    <profiles>
+        <profile>
+            <id>direct-runner</id>
+            <dependencies>
+                <dependency>
+                    <groupId>org.apache.beam</groupId>
+                    <artifactId>beam-runners-direct-java</artifactId>
+                    <scope>runtime</scope>
+                </dependency>
+            </dependencies>
+        </profile>
+
+        <profile>
+            <id>spark-runner</id>
+            <activation>
+                <property>
+                    <name>dist</name>
+                </property>
+            </activation>
+            <dependencies>
+                <dependency>
+                    <groupId>org.apache.beam</groupId>
+                    <artifactId>beam-runners-spark-3</artifactId>
+                    <scope>runtime</scope>
+                </dependency>
+                <dependency>
+                    <groupId>org.apache.spark</groupId>
+                    <artifactId>spark-core_2.12</artifactId>
+                    <version>${spark.version}</version>
+                </dependency>
+                <dependency>
+                    <groupId>org.apache.spark</groupId>
+                    <artifactId>spark-streaming_2.12</artifactId>
+                    <version>${spark.version}</version>
+                </dependency>
+            </dependencies>
+        </profile>
+
+        <profile>
+            <id>dist</id>
+            <activation>
+                <activeByDefault>true</activeByDefault>
+                <property>
+                    <name>dist</name>
+                </property>
+            </activation>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-shade-plugin</artifactId>
+                        <version>${maven-shade-plugin.version}</version>
+                        <configuration>
+                        <createDependencyReducedPom>false</createDependencyReducedPom>
+                        <filters>
+                            <filter>
+                                <artifact>*:*</artifact>
+                                <excludes>
+                                    <exclude>META-INF/*.SF</exclude>
+                                    <exclude>META-INF/*.DSA</exclude>
+                                    <exclude>META-INF/*.RSA</exclude>
+                                </excludes>
+                            </filter>
+                        </filters>
+                    </configuration>
+                        <executions>
+                            <execution>
+                                <phase>package</phase>
+                                <goals>
+                                    <goal>shade</goal>
+                                </goals>
+                                <configuration>
+                                    <shadedArtifactAttached>true</shadedArtifactAttached>
+                                    <shadedClassifierName>shaded</shadedClassifierName>
+                                    <transformers>
+                                        <transformer
+                                                implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer"/>
+                                    </transformers>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+            <dependencies>
+                <dependency>
+                    <groupId>org.apache.beam</groupId>
+                    <artifactId>beam-runners-spark-3</artifactId>
+                    <version>${beam.version}</version>
+                    <scope>runtime</scope>
+                </dependency>
+            </dependencies>
+        </profile>
+    </profiles>
+
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>org.apache.beam</groupId>
+                <artifactId>beam-sdks-java-google-cloud-platform-bom</artifactId>
+                <version>${beam.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+
+            <dependency>
+                <groupId>com.google.cloud</groupId>
+                <artifactId>libraries-bom</artifactId>
+                <version>26.8.0</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+
+<!--            <dependency>-->
+<!--                <groupId>com.google.cloud</groupId>-->
+<!--                <artifactId>google-cloud-bigquerystorage-bom</artifactId>-->
+<!--                <version>2.33.1</version>-->
+<!--                <type>pom</type>-->
+<!--                <scope>import</scope>-->
+<!--            </dependency>-->
+
+<!--            <dependency>-->
+<!--                <groupId>io.grpc</groupId>-->
+<!--                <artifactId>grpc-bom</artifactId>-->
+<!--                <version>1.52.1</version>-->
+<!--                <type>pom</type>-->
+<!--                <scope>import</scope>-->
+<!--            </dependency>-->
+
+            <dependency>
+                <groupId>org.slf4j</groupId>
+                <artifactId>slf4j-api</artifactId>
+                <version>${slf4j.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.slf4j</groupId>
+                <artifactId>slf4j-log4j12</artifactId>
+                <version>${slf4j.version}</version>
+                <scope>runtime</scope>
+            </dependency>
+
+            <!-- Caused by: com.fasterxml.jackson.databind.JsonMappingException: Scala module 2.10.0 requires Jackson Databind version >= 2.10.0 and < 2.11.0 -->
+            <dependency>
+                <groupId>com.fasterxml.jackson.core</groupId>
+                <artifactId>jackson-databind</artifactId>
+                <version>2.10.5.1</version>
+            </dependency>
+
+            <!-- java.lang.NoClassDefFoundError: Could not initialize class com.google.cloud.hadoop.gcsio.GoogleCloudStorageOptions -->
+            <dependency>
+                <groupId>com.google.cloud.bigdataoss</groupId>
+                <artifactId>gcsio</artifactId>
+                <version>2.2.4</version>
+                <scope>runtime</scope>
+            </dependency>
+
+            <dependency>
+                <groupId>org.apache.logging.log4j</groupId>
+                <artifactId>log4j-api</artifactId>
+                <version>${log4j-api.version}</version>
+            </dependency>
+<!--            <dependency>-->
+<!--                <groupId>com.google.protobuf</groupId>-->
+<!--                <artifactId>protobuf-java</artifactId>-->
+<!--                <version>3.21.12</version>-->
+<!--            </dependency>-->
+<!--            <dependency>-->
+<!--                <groupId>com.google.api.grpc</groupId>-->
+<!--                <artifactId>grpc-google-common-protos</artifactId>-->
+<!--                <version>2.3.2</version>-->
+<!--            </dependency>-->
+        </dependencies>
+    </dependencyManagement>
+
+</project>

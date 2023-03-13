@@ -1,0 +1,22 @@
+# building
+target
+
+# Eclipse
+.project
+.classpath
+.settings
+
+# Except IDEA run configurations
+*.iml
+.idea/*
+!/.idea/runConfigurations
+
+# terraform
+.terraform
+.terraform.*
+terraform.tfstate*
+*.tfbackend
+/terraform/MyPubsubToGCSJob/dev.tfvars
+gpg/*.gpg
+gpg/*.asc
+gpg/*.txt
