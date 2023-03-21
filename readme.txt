@@ -23,19 +23,12 @@ gcloud dataproc clusters create bartek-beam-on-spark \
 
 # Redeploy
 gsutil cp src/main/resources/log4j.properties gs://${GCP_PROJECT}-bartek-dataproc/
-gsutil cp src/main/resources/log4j2.properties gs://${GCP_PROJECT}-bartek-dataproc/
+#gsutil cp src/main/resources/log4j2.properties gs://${GCP_PROJECT}-bartek-dataproc/
 gsutil rm gs://${GCP_PROJECT}-bartek-dataproc/my-apache-beam-spark-0.1-SNAPSHOT-shaded.jar
 mvn clean package -Pdist && gsutil cp target/my-apache-beam-spark-0.1-SNAPSHOT-shaded.jar gs://${GCP_PROJECT}-bartek-dataproc/
 
 
 # MyLoggingJob
-gcloud dataproc jobs submit spark --cluster=bartek-beam-on-spark --region=us-central1 \
---class=com.bawi.beam.MyLoggingJob \
---files "gs://${GCP_PROJECT}-bartek-dataproc/log4j2.properties#log4j2.properties" \
---jars=gs://${GCP_PROJECT}-bartek-dataproc/my-apache-beam-spark-0.1-SNAPSHOT-shaded.jar \
--- \
---runner=SparkRunner
-
 gcloud dataproc jobs submit spark --cluster=bartek-beam-on-spark --region=us-central1 \
 --class=com.bawi.beam.MyLoggingJob \
 --files "gs://${GCP_PROJECT}-bartek-dataproc/log4j.properties#log4j.properties" \
@@ -61,7 +54,7 @@ bq mk --location US -d ${GCP_PROJECT}:bartek_person
 
 gcloud dataproc jobs submit spark --cluster=bartek-beam-on-spark --region=us-central1 \
 --class=com.bawi.beam.MyGCSToBQJob \
---files "gs://${GCP_PROJECT}-bartek-dataproc/log4j2.properties#log4j2.properties" \
+--files "gs://${GCP_PROJECT}-bartek-dataproc/log4j.properties#log4j.properties" \
 --jars=gs://${GCP_PROJECT}-bartek-dataproc/my-apache-beam-spark-0.1-SNAPSHOT-shaded.jar \
 -- \
 --runner=SparkRunner \
@@ -69,37 +62,5 @@ gcloud dataproc jobs submit spark --cluster=bartek-beam-on-spark --region=us-cen
 --tableSpec=${GCP_PROJECT}:bartek_person.bartek_person_table \
 --tempLocation=gs://${GCP_PROJECT}-bartek-dataproc/temp
 
-
-gcloud compute ssh --zone "${GCP_ZONE}" "bartek-beam-on-spark-m"  --tunnel-through-iap --project "${GCP_PROJECT}"
-
-spark-submit --class com.bawi.beam.MyLoggingJob --master yarn \
---files "gs://${GCP_PROJECT}-bartek-dataproc/log4j2.properties#log4j2.properties" \
-gs://${GCP_PROJECT}-bartek-dataproc/my-apache-beam-spark-0.1-SNAPSHOT-shaded.jar \
---runner=SparkRunner
-
-spark-submit --class com.bawi.beam.MyMultiOutputJob --master yarn --deploy-mode client \
-gs://${GCP_PROJECT}-bartek-dataproc/my-apache-beam-spark-0.1-SNAPSHOT-shaded.jar \
---runner=SparkRunner \
---evenOutput=gs://${GCP_PROJECT}-bartek-dataproc/even.txt \
---oddOutput=gs://${GCP_PROJECT}-bartek-dataproc/odd.txt
-
-
-
-gcloud dataproc jobs wait <job-id> --project ${GCP_PROJECT} --region ${GCP_REGION}
-Waiting for job output...
-23/03/12 10:29:32 INFO org.apache.beam.runners.spark.SparkRunner: Executing pipeline using the SparkRunner.
-23/03/12 10:29:32 INFO org.apache.beam.runners.spark.translation.SparkContextFactory: Creating a brand new Spark Context.
-23/03/12 10:29:33 INFO org.apache.spark.SparkEnv: Registering MapOutputTracker
-23/03/12 10:29:33 INFO org.apache.spark.SparkEnv: Registering BlockManagerMaster
-23/03/12 10:29:33 INFO org.apache.spark.SparkEnv: Registering BlockManagerMasterHeartbeat
-23/03/12 10:29:33 INFO org.apache.spark.SparkEnv: Registering OutputCommitCoordinator
-...
-yarnApplications:
-- name: MyMultiOutputJob
-  progress: 1.0
-  state: FINISHED
-
-
 applicationId=$(gcloud dataproc jobs list --region=us-central1 --filter='placement.clusterName = bartek-beam-on-spark' --format=json | jq -r '.[0].yarnApplications[0].trackingUrl' | egrep -o 'application_[0-9_]+')
-#gcloud compute ssh --zone "${GCP_ZONE}" "bartek-beam-on-spark-m"  --tunnel-through-iap --project "${GCP_PROJECT}" -- "yarn logs -applicationId $applicationId" > $applicationId.log.txt
 gcloud compute ssh --zone "${GCP_ZONE}" "bartek-beam-on-spark-m"  --tunnel-through-iap --project "${GCP_PROJECT}" -- "yarn logs -applicationId $applicationId" | grep ' \[' | grep '\] ' > $applicationId-filtered.log.txt

@@ -15,6 +15,7 @@ import org.apache.beam.sdk.options.PipelineOptionsFactory;
 import org.apache.beam.sdk.options.Validation;
 import org.apache.beam.sdk.options.ValueProvider;
 import org.apache.beam.sdk.transforms.SerializableFunction;
+import org.checkerframework.checker.nullness.qual.NonNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -31,15 +32,12 @@ public class MyGCSToBQJob {
         Pipeline pipeline = Pipeline.create(options);
 
         pipeline.apply(AvroIO
-                        .parseGenericRecords(new SerializableFunction<GenericRecord, GenericRecord>() { // need anonymous type to infer output type
-                            @Override
-                            public GenericRecord apply(GenericRecord genericRecord) {
-                                Utf8 name = (Utf8) genericRecord.get("name");
-                                ByteBuffer byteBuffer = (ByteBuffer) genericRecord.get("body");
-                                byte[] bytes = byteBuffer.array();
-                                LOGGER.info(name.toString() + "," + new String(bytes));
-                                return genericRecord;
-                            }
+                        .parseGenericRecords((SerializableFunction<@NonNull GenericRecord, GenericRecord>) genericRecord -> {
+                            Utf8 name = (Utf8) genericRecord.get("name");
+                            ByteBuffer byteBuffer = (ByteBuffer) genericRecord.get("body");
+                            byte[] bytes = byteBuffer.array();
+                            LOGGER.info(name.toString() + "," + new String(bytes));
+                            return genericRecord;
                         }).withCoder(AvroGenericCoder.of(SCHEMA))
                         .from(options.getInput())
                 )
