@@ -3,7 +3,7 @@ export PATH=$JAVA_HOME/bin:$PATH
 mvn -version
 
 # Create cluster bucket
-gsutil rm -r gs://${GCP_PROJECT}-bartek-dataproc
+gsutil -m rm -r gs://${GCP_PROJECT}-bartek-dataproc
 gsutil mb -l ${GCP_REGION} gs://${GCP_PROJECT}-bartek-dataproc
 
 # Create dataproc cluster
