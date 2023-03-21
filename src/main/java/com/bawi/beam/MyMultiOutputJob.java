@@ -17,13 +17,14 @@ import org.apache.beam.sdk.values.PCollection;
 import org.apache.beam.sdk.values.PCollectionTuple;
 import org.apache.beam.sdk.values.TupleTag;
 import org.apache.beam.sdk.values.TupleTagList;
+import org.checkerframework.checker.nullness.qual.NonNull;
 
 public class MyMultiOutputJob {
     static TupleTag<String> oddTag = new TupleTag<>("odd");
     static TupleTag<String> evenTag = new TupleTag<>("even");
 
-    private static Counter EVEN_NUMBERS_COUNT = Metrics.counter(MyMultiOutputJob.class.getSimpleName(), "even_numbers_count");
-    private static Counter ODD_NUMBERS_COUNT = Metrics.counter(MyMultiOutputJob.class.getSimpleName(), "odd_numbers_count");
+    private static final Counter EVEN_NUMBERS_COUNT = Metrics.counter(MyMultiOutputJob.class.getSimpleName(), "even_numbers_count");
+    private static final Counter ODD_NUMBERS_COUNT = Metrics.counter(MyMultiOutputJob.class.getSimpleName(), "odd_numbers_count");
 
     private static class DispatchingFn extends DoFn<Integer, String> {
         @ProcessElement
@@ -57,7 +58,7 @@ public class MyMultiOutputJob {
         pipeline.run();
     }
 
-    static class MyMultiPTransform extends PTransform<PCollection<Integer>, PCollectionTuple> {
+    static class MyMultiPTransform extends PTransform<@NonNull PCollection<Integer>, @NonNull PCollectionTuple> {
         @Override
         public PCollectionTuple expand(PCollection<Integer> input) {
             return input.apply(ParDo.of(new DispatchingFn()).withOutputTags(oddTag, TupleTagList.of(evenTag)));

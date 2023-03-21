@@ -10,8 +10,6 @@ import org.apache.beam.sdk.values.TypeDescriptors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.Arrays;
-
 public class MyLoggingJob {
     private static final Logger LOGGER = LoggerFactory.getLogger(MyLoggingJob.class);
 
@@ -24,7 +22,7 @@ public class MyLoggingJob {
     }
 
     public static void main(String[] args) {
-        args = PipelineUtils.updateArgs(args, "--runner=SparkRunner");
+        args = PipelineUtils.updateArgsAndAutodetectRunner(args);
         PipelineOptions options = PipelineOptionsFactory.fromArgs(args).withValidation().create();
         Pipeline pipeline = Pipeline.create(options);
 

@@ -1,5 +1,5 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/maven-v4_0_0.xsd">
 
     <modelVersion>4.0.0</modelVersion>
     <groupId>com.bawi</groupId>
@@ -9,15 +9,12 @@
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 
-        <beam.version>2.46.0</beam.version> <!-- profiling since 2.33 with service account with roles/cloudprofiler.agent -->
-        <spark.version>3.1.3</spark.version>
+        <beam.version>2.46.0</beam.version>  <!-- https://beam.apache.org/get-started/downloads -->
+        <spark.version>3.1.3</spark.version> <!-- https://beam.apache.org/documentation/runners/spark -->
         <slf4j.version>1.7.36</slf4j.version>
-        <log4j-api.version>2.19.0</log4j-api.version>
+        <log4j-api.version>2.20.0</log4j-api.version>
 
-        <!-- testing -->
-        <junit.version>4.13.2</junit.version>
-
-        <maven-compiler-plugin.version>3.10.1</maven-compiler-plugin.version>
+        <maven-compiler-plugin.version>3.11.0</maven-compiler-plugin.version>
         <maven-shade-plugin.version>3.4.1</maven-shade-plugin.version>
     </properties>
 
@@ -35,24 +32,6 @@
                     <forceJavacCompilerUse>true</forceJavacCompilerUse>
                 </configuration>
             </plugin>
-<!--            <plugin>-->
-<!--                <groupId>org.apache.maven.plugins</groupId>-->
-<!--                <artifactId>maven-enforcer-plugin</artifactId>-->
-<!--                <version>3.2.1</version>-->
-<!--                <executions>-->
-<!--                    <execution>-->
-<!--                        <id>enforce</id>-->
-<!--                        <goals>-->
-<!--                            <goal>enforce</goal>-->
-<!--                        </goals>-->
-<!--                        <configuration>-->
-<!--                            <rules>-->
-<!--                                <requireUpperBoundDeps/>-->
-<!--                            </rules>-->
-<!--                        </configuration>-->
-<!--                    </execution>-->
-<!--                </executions>-->
-<!--            </plugin>-->
         </plugins>
     </build>
 
@@ -61,59 +40,29 @@
         <dependency>
             <groupId>org.apache.beam</groupId>
             <artifactId>beam-sdks-java-core</artifactId>
-            <version>${beam.version}</version>
         </dependency>
 
-        <!-- reqiured for BigQueryIO -->
-<!--        <dependency>-->
-<!--            <groupId>org.apache.beam</groupId>-->
-<!--            <artifactId>beam-sdks-java-io-google-cloud-platform</artifactId>-->
-<!--            <version>${beam.version}</version>-->
-<!--            <exclusions>-->
-<!--                <exclusion>-->
-<!--                    <groupId>com.google.cloud</groupId>-->
-<!--                    <artifactId>google-cloud-spanner</artifactId>-->
-<!--                </exclusion>-->
-<!--                <exclusion>-->
-<!--                    <groupId>com.google.cloud.bigtable</groupId>-->
-<!--                    <artifactId>bigtable-client-core</artifactId>-->
-<!--                </exclusion>-->
-<!--                <exclusion>-->
-<!--                    <groupId>com.google.cloud</groupId>-->
-<!--                    <artifactId>google-cloud-firestore</artifactId>-->
-<!--                </exclusion>-->
-<!--                <exclusion>-->
-<!--                    <groupId>com.google.cloud.bigtable</groupId>-->
-<!--                    <artifactId>bigtable-client-core</artifactId>-->
-<!--                </exclusion>-->
-<!--                <exclusion>-->
-<!--                    <groupId>com.google.cloud</groupId>-->
-<!--                    <artifactId>google-cloud-bigtable</artifactId>-->
-<!--                </exclusion>-->
-<!--                <exclusion>-->
-<!--                    <groupId>com.google.cloud.datastore</groupId>-->
-<!--                    <artifactId>datastore-v1-proto-client</artifactId>-->
-<!--                </exclusion>-->
-<!--                <exclusion>-->
-<!--                    <groupId>com.google.cloud</groupId>-->
-<!--                    <artifactId>google-cloud-pubsublite</artifactId>-->
-<!--                </exclusion>-->
-<!--                <exclusion>-->
-<!--                    <groupId>com.google.cloud</groupId>-->
-<!--                    <artifactId>google-cloud-pubsub</artifactId>-->
-<!--                </exclusion>-->
-<!--            </exclusions>-->
-<!--        </dependency>-->
+        <!-- required for BigQueryIO -->
+        <dependency>
+            <groupId>org.apache.beam</groupId>
+            <artifactId>beam-sdks-java-io-google-cloud-platform</artifactId>
+        </dependency>
 
         <dependency>
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-api</artifactId>
         </dependency>
 
-        <!-- to use log4j.properties and avoid SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder" -->
+        <!-- log4j2 -->
         <dependency>
-            <groupId>org.slf4j</groupId>
-            <artifactId>slf4j-log4j12</artifactId>
+            <groupId>org.apache.logging.log4j</groupId>
+            <artifactId>log4j-slf4j-impl</artifactId>
+            <scope>runtime</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>org.apache.logging.log4j</groupId>
+            <artifactId>log4j-api</artifactId>
             <scope>runtime</scope>
         </dependency>
 
@@ -122,6 +71,11 @@
     <profiles>
         <profile>
             <id>direct-runner</id>
+            <activation>
+                <property>
+                    <name>!spark</name>
+                </property>
+            </activation>
             <dependencies>
                 <dependency>
                     <groupId>org.apache.beam</groupId>
@@ -132,27 +86,42 @@
         </profile>
 
         <profile>
-            <id>spark-runner</id>
-            <activation>
-                <property>
-                    <name>dist</name>
-                </property>
-            </activation>
+            <id>spark</id>
             <dependencies>
                 <dependency>
                     <groupId>org.apache.beam</groupId>
                     <artifactId>beam-runners-spark-3</artifactId>
+                    <version>${beam.version}</version>
                     <scope>runtime</scope>
                 </dependency>
                 <dependency>
                     <groupId>org.apache.spark</groupId>
                     <artifactId>spark-core_2.12</artifactId>
                     <version>${spark.version}</version>
+                    <exclusions>
+                        <exclusion>
+                            <groupId>org.slf4j</groupId>
+                            <artifactId>slf4j-log4j12</artifactId>
+                        </exclusion>
+                    </exclusions>
                 </dependency>
                 <dependency>
                     <groupId>org.apache.spark</groupId>
                     <artifactId>spark-streaming_2.12</artifactId>
                     <version>${spark.version}</version>
+                    <exclusions>
+                        <exclusion>
+                            <groupId>org.slf4j</groupId>
+                            <artifactId>slf4j-log4j12</artifactId>
+                        </exclusion>
+                    </exclusions>
+                </dependency>
+
+                <dependency>
+                    <groupId>com.fasterxml.jackson.module</groupId>
+                    <artifactId>jackson-module-scala_2.12</artifactId>
+                    <!-- latest version supporting beam defined jackson-datatype -->
+                    <version>2.14.2</version>
                 </dependency>
             </dependencies>
         </profile>
@@ -160,7 +129,6 @@
         <profile>
             <id>dist</id>
             <activation>
-                <activeByDefault>true</activeByDefault>
                 <property>
                     <name>dist</name>
                 </property>
@@ -172,18 +140,24 @@
                         <artifactId>maven-shade-plugin</artifactId>
                         <version>${maven-shade-plugin.version}</version>
                         <configuration>
-                        <createDependencyReducedPom>false</createDependencyReducedPom>
-                        <filters>
-                            <filter>
-                                <artifact>*:*</artifact>
-                                <excludes>
-                                    <exclude>META-INF/*.SF</exclude>
-                                    <exclude>META-INF/*.DSA</exclude>
-                                    <exclude>META-INF/*.RSA</exclude>
-                                </excludes>
-                            </filter>
-                        </filters>
-                    </configuration>
+                            <createDependencyReducedPom>false</createDependencyReducedPom>
+                            <filters>
+                                <filter>
+                                    <artifact>*:*</artifact>
+                                    <excludes>
+                                        <exclude>LICENSE.*</exclude>
+                                        <exclude>META-INF/MANIFEST.MF</exclude>
+                                        <exclude>META-INF/NOTICE.txt</exclude>
+                                        <exclude>META-INF/LICENSE.txt</exclude>
+                                        <exclude>META-INF/DEPENDENCIES</exclude>
+                                        <exclude>META-INF/license/.*</exclude>
+                                        <exclude>META-INF/*.SF</exclude>
+                                        <exclude>META-INF/*.DSA</exclude>
+                                        <exclude>META-INF/*.RSA</exclude>
+                                    </excludes>
+                                </filter>
+                            </filters>
+                        </configuration>
                         <executions>
                             <execution>
                                 <phase>package</phase>
@@ -193,6 +167,25 @@
                                 <configuration>
                                     <shadedArtifactAttached>true</shadedArtifactAttached>
                                     <shadedClassifierName>shaded</shadedClassifierName>
+                                    <relocations>
+                                        <!--
+                                        java.lang.NoSuchMethodError: com.google.protobuf.Descriptors$FileDescriptor.internalBuildGeneratedFileFrom([Ljava/lang/String;[Lcom/google/protobuf/Descriptors$FileDescriptor;)Lcom/google/protobuf/Descriptors$FileDescriptor;
+                                        at io.grpc.reflection.v1alpha.ServerReflectionProto.<clinit>(ServerReflectionProto.java:103)
+                                        -->
+                                        <relocation>
+                                            <pattern>com.google.protobuf</pattern>
+                                            <shadedPattern>com.shaded.google.protobuf</shadedPattern>
+                                        </relocation>
+
+                                        <!--
+                                        Exception in thread "main" java.lang.NoSuchMethodError: com.google.gson.JsonParser.parseString(Ljava/lang/String;)Lcom/google/gson/JsonElement;
+                                        at org.apache.beam.sdk.io.gcp.bigquery.BigQueryIO$Write.continueExpandTyped(BigQueryIO.java:3307)
+                                        -->
+                                        <relocation>
+                                            <pattern>com.google.gson</pattern>
+                                            <shadedPattern>com.shaded.google.gson</shadedPattern>
+                                        </relocation>
+                                    </relocations>
                                     <transformers>
                                         <transformer
                                                 implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer"/>
@@ -225,53 +218,9 @@
             </dependency>
 
             <dependency>
-                <groupId>com.google.cloud</groupId>
-                <artifactId>libraries-bom</artifactId>
-                <version>26.8.0</version>
-                <type>pom</type>
-                <scope>import</scope>
-            </dependency>
-
-<!--            <dependency>-->
-<!--                <groupId>com.google.cloud</groupId>-->
-<!--                <artifactId>google-cloud-bigquerystorage-bom</artifactId>-->
-<!--                <version>2.33.1</version>-->
-<!--                <type>pom</type>-->
-<!--                <scope>import</scope>-->
-<!--            </dependency>-->
-
-<!--            <dependency>-->
-<!--                <groupId>io.grpc</groupId>-->
-<!--                <artifactId>grpc-bom</artifactId>-->
-<!--                <version>1.52.1</version>-->
-<!--                <type>pom</type>-->
-<!--                <scope>import</scope>-->
-<!--            </dependency>-->
-
-            <dependency>
-                <groupId>org.slf4j</groupId>
-                <artifactId>slf4j-api</artifactId>
-                <version>${slf4j.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.slf4j</groupId>
-                <artifactId>slf4j-log4j12</artifactId>
-                <version>${slf4j.version}</version>
-                <scope>runtime</scope>
-            </dependency>
-
-            <!-- Caused by: com.fasterxml.jackson.databind.JsonMappingException: Scala module 2.10.0 requires Jackson Databind version >= 2.10.0 and < 2.11.0 -->
-            <dependency>
-                <groupId>com.fasterxml.jackson.core</groupId>
-                <artifactId>jackson-databind</artifactId>
-                <version>2.10.5.1</version>
-            </dependency>
-
-            <!-- java.lang.NoClassDefFoundError: Could not initialize class com.google.cloud.hadoop.gcsio.GoogleCloudStorageOptions -->
-            <dependency>
-                <groupId>com.google.cloud.bigdataoss</groupId>
-                <artifactId>gcsio</artifactId>
-                <version>2.2.4</version>
+                <groupId>org.apache.logging.log4j</groupId>
+                <artifactId>log4j-slf4j-impl</artifactId>
+                <version>${log4j-api.version}</version>
                 <scope>runtime</scope>
             </dependency>
 
@@ -279,16 +228,21 @@
                 <groupId>org.apache.logging.log4j</groupId>
                 <artifactId>log4j-api</artifactId>
                 <version>${log4j-api.version}</version>
+                <scope>runtime</scope>
             </dependency>
+
+            <!-- used transitively -->
+            <dependency>
+                <groupId>org.slf4j</groupId>
+                <artifactId>slf4j-api</artifactId>
+                <version>${slf4j.version}</version>
+            </dependency>
+
+            <!-- Caused by: com.fasterxml.jackson.databind.JsonMappingException: Scala module 2.10.0 requires Jackson Databind version >= 2.10.0 and < 2.11.0 -->
 <!--            <dependency>-->
-<!--                <groupId>com.google.protobuf</groupId>-->
-<!--                <artifactId>protobuf-java</artifactId>-->
-<!--                <version>3.21.12</version>-->
-<!--            </dependency>-->
-<!--            <dependency>-->
-<!--                <groupId>com.google.api.grpc</groupId>-->
-<!--                <artifactId>grpc-google-common-protos</artifactId>-->
-<!--                <version>2.3.2</version>-->
+<!--                <groupId>com.fasterxml.jackson.core</groupId>-->
+<!--                <artifactId>jackson-databind</artifactId>-->
+<!--                <version>2.10.5.1</version>-->
 <!--            </dependency>-->
         </dependencies>
     </dependencyManagement>
