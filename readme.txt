@@ -7,7 +7,7 @@ gsutil rm -r gs://${GCP_PROJECT}-bartek-dataproc
 gsutil mb -l ${GCP_REGION} gs://${GCP_PROJECT}-bartek-dataproc
 
 # Create dataproc cluster
-gcloud dataproc clusters delete bartek-beam-on-spark --project ${GCP_PROJECT} --region us-central1
+gcloud dataproc clusters delete bartek-beam-on-spark --project ${GCP_PROJECT} --region us-central1 --quiet
 gcloud dataproc clusters create bartek-beam-on-spark \
 --project ${GCP_PROJECT} --region us-central1 --zone="" --no-address \
 --subnet ${GCP_SUBNETWORK} \
