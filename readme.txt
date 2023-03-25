@@ -1,6 +1,7 @@
 export JAVA_HOME=$(/usr/libexec/java_home -v1.8)
 export PATH=$JAVA_HOME/bin:$PATH
 mvn -version
+mvn dependency:tree -Dverbose -Pdirect-runner > dep.txt
 
 # Create cluster bucket
 gsutil -m rm -r gs://${GCP_PROJECT}-bartek-dataproc
@@ -19,7 +20,13 @@ gcloud dataproc clusters create bartek-beam-on-spark \
 --bucket ${GCP_PROJECT}-bartek-dataproc \
 --optional-components DOCKER \
 --enable-component-gateway \
---properties spark:spark.master.rest.enabled=true
+--properties spark:spark.master.rest.enabled=true,dataproc:dataproc.logging.stackdriver.job.driver.enable=true,dataproc:dataproc.logging.stackdriver.enable=true,dataproc:jobs.file-backed-output.enable=true,dataproc:dataproc.logging.stackdriver.job.yarn.container.enable=true
+
+# properties allow container logging
+#DEFAULT 2023-03-24T15:31:54.644996703Z 2023-03-24 15:31:54,319 [Executor task launch worker for task 1.0 in stage 0.0 (TID 1)] INFO MyLoggingJob$MyFunction:19 - jdd
+#DEFAULT 2023-03-24T15:31:54.645709773Z 2023-03-24 15:31:54,319 [Executor task launch worker for task 0.0 in stage 0.0 (TID 0)] INFO MyLoggingJob$MyFunction:19 - hello
+#DEFAULT 2023-03-24T15:31:55.348449232Z 2023-03-24 15:31:54,479 [Executor task launch worker for task 2.0 in stage 0.0 (TID 2)] INFO MyLoggingJob$MyFunction:19 - conf
+
 
 # Redeploy
 gsutil cp src/main/resources/log4j.properties gs://${GCP_PROJECT}-bartek-dataproc/
@@ -42,6 +49,7 @@ gcloud dataproc jobs submit spark --cluster=bartek-beam-on-spark --region=us-cen
 --class=com.bawi.beam.MyMultiOutputJob \
 --files "gs://${GCP_PROJECT}-bartek-dataproc/log4j.properties#log4j.properties" \
 --jars=gs://${GCP_PROJECT}-bartek-dataproc/my-apache-beam-spark-0.1-SNAPSHOT-shaded.jar \
+--properties=spark.dynamicAllocation.enabled=false,spark.executor.instances=1,spark.executor.cores=1 \
 -- \
 --runner=SparkRunner \
 --evenOutput=gs://${GCP_PROJECT}-bartek-dataproc/even.txt \
@@ -63,4 +71,16 @@ gcloud dataproc jobs submit spark --cluster=bartek-beam-on-spark --region=us-cen
 --tempLocation=gs://${GCP_PROJECT}-bartek-dataproc/temp
 
 applicationId=$(gcloud dataproc jobs list --region=us-central1 --filter='placement.clusterName = bartek-beam-on-spark' --format=json | jq -r '.[0].yarnApplications[0].trackingUrl' | egrep -o 'application_[0-9_]+')
-gcloud compute ssh --zone "${GCP_ZONE}" "bartek-beam-on-spark-m"  --tunnel-through-iap --project "${GCP_PROJECT}" -- "yarn logs -applicationId $applicationId" | grep ' \[' | grep '\] ' > $applicationId-filtered.log.txt
+gcloud compute ssh --zone "${GCP_ZONE}" "bartek-beam-on-spark-m" --tunnel-through-iap --project "${GCP_PROJECT}" -- "yarn logs -applicationId $applicationId" | grep ' \[' | grep '\] ' > $applicationId-filtered.log.txt
+gcloud compute ssh --zone "${GCP_ZONE}" "bartek-beam-on-spark-m" --tunnel-through-iap --project "${GCP_PROJECT}" -- "yarn logs -applicationId $applicationId" > $applicationId.log.txt
+
+java -Dlog4j.configuration=file:src/main/resources/log4j.properties -cp $HOME/.m2/repository/org/apache/avro/avro-tools/1.8.2/avro-tools-1.8.2.jar:$HOME/.m2/repository/org/xerial/snappy/snappy-java/1.1.8.4/snappy-java-1.1.8.4.jar org.apache.avro.tool.Main tojson src/test/resources/myRecord.snappy.avro
+
+
+bq head ${GCP_PROJECT}:bartek_person.bartek_person_table
+
+bq query --nouse_legacy_sql \
+ "SELECT
+    name, body, SAFE_CONVERT_BYTES_TO_STRING(body) as bodyAsString
+  FROM
+    ${GCP_PROJECT}.bartek_person.bartek_person_table"
