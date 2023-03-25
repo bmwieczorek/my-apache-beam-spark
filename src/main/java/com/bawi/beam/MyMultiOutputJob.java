@@ -41,8 +41,10 @@ public class MyMultiOutputJob {
     }
 
     public static void main(String[] args) {
-        // --oddOutput=target/odd.txt --evenOutput=target/even.txt
-//        args = PipelineUtils.updateArgsWithSparkRunner(args, "--evenOutput=target/even.txt", "--oddOutput=target/odd.txt");
+        args = MyPipelineUtils.updateArgsAndAutodetectRunnerIfLocal(args,
+                "--oddOutput=target/odd.txt",
+                "--evenOutput=target/even.txt"
+        );
         MyOptions options = PipelineOptionsFactory.fromArgs(args).withValidation().as(MyOptions.class);
         Pipeline pipeline = Pipeline.create(options);
 

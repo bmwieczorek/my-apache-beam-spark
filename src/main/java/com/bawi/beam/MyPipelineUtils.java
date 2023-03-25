@@ -9,10 +9,13 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-public class PipelineUtils {
-    private static final Logger LOGGER = LoggerFactory.getLogger(PipelineUtils.class);
+public class MyPipelineUtils {
+    private static final Logger LOGGER = LoggerFactory.getLogger(MyPipelineUtils.class);
 
-    public static String[] updateArgsAndAutodetectRunner(String[] args, String... additionalArgs) {
+    public static String[] updateArgsAndAutodetectRunnerIfLocal(String[] args, String... additionalArgs) {
+        if (!isLocal()) {
+            return args;
+        }
         Set<String> merged = new LinkedHashSet<>();
         merged.addAll(Arrays.asList(args));
         merged.addAll(Arrays.asList(additionalArgs));
@@ -31,5 +34,12 @@ public class PipelineUtils {
         LOGGER.info("Merged args={}", map);
         return strings;
 
+    }
+
+    public static boolean isLocal() {
+        String osName = System.getProperty("os.name").toLowerCase();
+        boolean isLocal = osName.contains("mac") || osName.contains("windows");
+       LOGGER.info("Is system local: " + isLocal);
+        return isLocal;
     }
 }

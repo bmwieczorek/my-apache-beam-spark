@@ -28,6 +28,12 @@ public class MyGCSToBQJob {
 
 
     public static void main(String[] args) {
+        args = MyPipelineUtils.updateArgsAndAutodetectRunnerIfLocal(args,
+                "--input=src/test/resources/*.avro",
+                "--tableSpec=" + System.getenv("GCP_PROJECT") + ":bartek_person.bartek_person_table",
+                "--tempLocation=gs://" + System.getenv("GCP_PROJECT") + "-bartek-dataproc/temp"
+        );
+
         MyPipelineOptions options = PipelineOptionsFactory.fromArgs(args).withValidation().as(MyPipelineOptions.class);
         Pipeline pipeline = Pipeline.create(options);
 

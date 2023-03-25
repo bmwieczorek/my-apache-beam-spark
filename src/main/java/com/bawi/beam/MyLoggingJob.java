@@ -22,7 +22,7 @@ public class MyLoggingJob {
     }
 
     public static void main(String[] args) {
-        args = PipelineUtils.updateArgsAndAutodetectRunner(args);
+        args = MyPipelineUtils.updateArgsAndAutodetectRunnerIfLocal(args);
         PipelineOptions options = PipelineOptionsFactory.fromArgs(args).withValidation().create();
         Pipeline pipeline = Pipeline.create(options);
 
