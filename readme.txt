@@ -84,3 +84,17 @@ bq query --nouse_legacy_sql \
     name, body, SAFE_CONVERT_BYTES_TO_STRING(body) as bodyAsString
   FROM
     ${GCP_PROJECT}.bartek_person.bartek_person_table"
+
+# spark batch serverless
+gcloud dataproc batches submit --project ${GCP_PROJECT} --region us-central1 spark \
+ --batch bartek-batch-$RANDOM --class com.bawi.beam.MyLoggingJob --version 1.1 \
+ --jars gs://${GCP_PROJECT}-bartek-dataproc/my-apache-beam-spark-0.1-SNAPSHOT-shaded.jar \
+ --subnet ${GCP_SUBNETWORK} --service-account ${GCP_SERVICE_ACCOUNT} \
+ -- \
+ --runner=SparkRunner
+
+gcloud logging read --project ${GCP_PROJECT} "timestamp<=\"$(date -u '+%Y-%m-%dT%H:%M:%SZ')\" AND
+>  timestamp>=\"$(date -u -v-173M '+%Y-%m-%dT%H:%M:%SZ')\" AND resource.type=cloud_dataproc_batch AND jsonPayload.component=executor AND jdd" --format "table(timestamp,resource.labels.batch_id,severity,jsonPayload.class,jsonPayload.message)"
+TIMESTAMP                       BATCH_ID            SEVERITY  CLASS         MESSAGE
+2023-03-26T09:50:46.571017878Z  bartek-batch-24468  INFO      MyLoggingJob  jdd
+
