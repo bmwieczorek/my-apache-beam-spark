@@ -1,9 +1,11 @@
 package com.bawi.beam;
 
 import org.apache.beam.sdk.Pipeline;
+import org.apache.beam.sdk.PipelineResult;
 import org.apache.beam.sdk.coders.StringUtf8Coder;
 import org.apache.beam.sdk.io.TextIO;
 import org.apache.beam.sdk.metrics.Counter;
+import org.apache.beam.sdk.metrics.MetricQueryResults;
 import org.apache.beam.sdk.metrics.Metrics;
 import org.apache.beam.sdk.options.PipelineOptions;
 import org.apache.beam.sdk.options.PipelineOptionsFactory;
@@ -18,8 +20,16 @@ import org.apache.beam.sdk.values.PCollectionTuple;
 import org.apache.beam.sdk.values.TupleTag;
 import org.apache.beam.sdk.values.TupleTagList;
 import org.checkerframework.checker.nullness.qual.NonNull;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
+
 
 public class MyMultiOutputJob {
+    private static final Logger LOGGER = LoggerFactory.getLogger(MyMultiOutputJob.class.getSimpleName());
     static TupleTag<String> oddTag = new TupleTag<>("odd");
     static TupleTag<String> evenTag = new TupleTag<>("even");
 
@@ -57,7 +67,10 @@ public class MyMultiOutputJob {
         PCollection<String> odd = collections.get(oddTag).setCoder(StringUtf8Coder.of());
         odd.apply("Odd", TextIO.write().to(options.getOddOutput()));
 
-        pipeline.run();
+        PipelineResult pipelineResult = pipeline.run();
+        pipelineResult.waitUntilFinish();
+        MetricQueryResults metricQueryResults = pipelineResult.metrics().allMetrics();
+        LOGGER.info("MyMultiOutputJob: " + getCounters(metricQueryResults));
     }
 
     static class MyMultiPTransform extends PTransform<@NonNull PCollection<Integer>, @NonNull PCollectionTuple> {
@@ -77,5 +90,11 @@ public class MyMultiOutputJob {
         ValueProvider<String> getOddOutput();
         @SuppressWarnings("unused")
         void setOddOutput(ValueProvider<String> value);
+    }
+
+    private static List<String> getCounters(MetricQueryResults metricQueryResults) {
+        return StreamSupport.stream(metricQueryResults.getCounters().spliterator(), false)
+                .map(c -> c.getName().getName() + "=" + c.getCommitted())
+                .collect(Collectors.toList());
     }
 }
