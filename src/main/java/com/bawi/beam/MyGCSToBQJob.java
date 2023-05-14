@@ -5,7 +5,7 @@ import org.apache.avro.SchemaBuilder;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.avro.util.Utf8;
 import org.apache.beam.sdk.Pipeline;
-import  org.apache.beam.sdk.extensions.avro.coders.AvroGenericCoder;
+import org.apache.beam.sdk.extensions.avro.coders.AvroGenericCoder;
 import org.apache.beam.sdk.extensions.avro.io.AvroIO;
 import org.apache.beam.sdk.io.gcp.bigquery.BigQueryIO;
 import org.apache.beam.sdk.io.gcp.bigquery.BigQueryIO.Write.CreateDisposition;
@@ -15,7 +15,6 @@ import org.apache.beam.sdk.options.PipelineOptionsFactory;
 import org.apache.beam.sdk.options.Validation;
 import org.apache.beam.sdk.options.ValueProvider;
 import org.apache.beam.sdk.transforms.SerializableFunction;
-import org.checkerframework.checker.nullness.qual.NonNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -38,7 +37,7 @@ public class MyGCSToBQJob {
         Pipeline pipeline = Pipeline.create(options);
 
         pipeline.apply(AvroIO
-                        .parseGenericRecords((SerializableFunction<@NonNull GenericRecord, GenericRecord>) genericRecord -> {
+                        .parseGenericRecords((SerializableFunction<GenericRecord, GenericRecord>) genericRecord -> {
                             Utf8 name = (Utf8) genericRecord.get("name");
                             ByteBuffer byteBuffer = (ByteBuffer) genericRecord.get("body");
                             byte[] bytes = byteBuffer.array();
