@@ -94,7 +94,7 @@ public class MyMultiOutputJob {
 
     private static List<String> getCounters(MetricQueryResults metricQueryResults) {
         return StreamSupport.stream(metricQueryResults.getCounters().spliterator(), false)
-                .map(c -> c.getName().getName() + "=" + c.getCommitted())
+                .map(c -> c.getName().getName() + "=" + c.getAttempted())
                 .collect(Collectors.toList());
     }
 }
