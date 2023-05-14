@@ -55,6 +55,11 @@
             <artifactId>slf4j-api</artifactId>
         </dependency>
 
+<!--        <dependency>-->
+<!--            <groupId>org.apache.avro</groupId>-->
+<!--            <artifactId>avro</artifactId>-->
+<!--            <version>1.11.1</version>-->
+<!--        </dependency>-->
     </dependencies>
 
     <profiles>
@@ -107,13 +112,34 @@
                     <artifactId>spark-core_2.12</artifactId>
                     <version>${spark.version}</version>
                     <scope>runtime</scope>
+<!--                    <scope>compile</scope>-->
+<!--                    <exclusions>-->
+<!--                        <exclusion>-->
+<!--                            <groupId>org.apache.avro</groupId>-->
+<!--                            <artifactId>avro</artifactId>-->
+<!--                        </exclusion>-->
+<!--                    </exclusions>-->
                 </dependency>
                 <dependency>
                     <groupId>org.apache.spark</groupId>
                     <artifactId>spark-streaming_2.12</artifactId>
                     <version>${spark.version}</version>
                     <scope>runtime</scope>
+<!--                    <scope>compile</scope>-->
+<!--                    <exclusions>-->
+<!--                        <exclusion>-->
+<!--                            <groupId>org.apache.avro</groupId>-->
+<!--                            <artifactId>avro</artifactId>-->
+<!--                        </exclusion>-->
+<!--                    </exclusions>-->
                 </dependency>
+
+<!--                <dependency>-->
+<!--                    <groupId>org.apache.avro</groupId>-->
+<!--                    <artifactId>avro</artifactId>-->
+<!--                    <version>1.11.0</version>-->
+<!--                    <scope>compile</scope>-->
+<!--                </dependency>-->
 
                 <dependency>
                     <groupId>com.fasterxml.jackson.module</groupId>
@@ -160,6 +186,8 @@
                                 <configuration>
                                     <shadedArtifactAttached>true</shadedArtifactAttached>
                                     <shadedClassifierName>shaded</shadedClassifierName>
+
+                                    <!-- https://cloud.google.com/dataproc/docs/guides/manage-spark-dependencies -->
                                     <relocations>
                                         <!--
                                         java.lang.NoSuchMethodError: com.google.protobuf.Descriptors$FileDescriptor.internalBuildGeneratedFileFrom([Ljava/lang/String;[Lcom/google/protobuf/Descriptors$FileDescriptor;)Lcom/google/protobuf/Descriptors$FileDescriptor;
@@ -178,6 +206,10 @@
                                             <pattern>com.google.gson</pattern>
                                             <shadedPattern>com.shaded.google.gson</shadedPattern>
                                         </relocation>
+<!--                                        <relocation>-->
+<!--                                            <pattern>org.apache.avro</pattern>-->
+<!--                                            <shadedPattern>org.shaded.apache.avro</shadedPattern>-->
+<!--                                        </relocation>-->
                                     </relocations>
                                     <transformers>
                                         <transformer
