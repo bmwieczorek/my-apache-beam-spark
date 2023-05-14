@@ -12,8 +12,8 @@ gcloud dataproc clusters delete bartek-beam-on-spark --project ${GCP_PROJECT} --
 gcloud dataproc clusters create bartek-beam-on-spark \
 --project ${GCP_PROJECT} --region us-central1 --zone="" --no-address \
 --subnet ${GCP_SUBNETWORK} \
---master-machine-type n2-standard-4 --master-boot-disk-size 500 \
---num-workers 2 --worker-machine-type n2-standard-4 --worker-boot-disk-size 1000 \
+--master-machine-type t2d-standard-4 --master-boot-disk-size 1000 \
+--num-workers 2 --worker-machine-type t2d-standard-8 --worker-boot-disk-size 2000 \
 --image-version 2.0.58-debian10 \
 --scopes 'https://www.googleapis.com/auth/cloud-platform' \
 --service-account=${GCP_SERVICE_ACCOUNT} \
@@ -44,6 +44,35 @@ gcloud dataproc jobs submit spark --cluster=bartek-beam-on-spark --region=us-cen
 -- \
 --runner=SparkRunner
 
+# MyMultiOutputLoggingJob
+gcloud dataproc jobs submit spark --cluster=bartek-beam-on-spark --region=us-central1 \
+--class=com.bawi.beam.MyMultiOutputLoggingJob \
+--files "gs://${GCP_PROJECT}-bartek-dataproc/log4j.properties#log4j.properties" \
+--jars=gs://${GCP_PROJECT}-bartek-dataproc/my-apache-beam-spark-0.1-SNAPSHOT-shaded.jar \
+--labels=job_name=bartek-mymultioutputloggingjob \
+-- \
+--runner=SparkRunner
+
+
+# MyMultiOutputLoggingJob
+gcloud dataproc jobs submit spark --cluster=bartek-beam-on-spark --region=us-central1 \
+--class=com.bawi.beam.MyLoggingJobWithSideInput \
+--files "gs://${GCP_PROJECT}-bartek-dataproc/log4j.properties#log4j.properties" \
+--jars=gs://${GCP_PROJECT}-bartek-dataproc/my-apache-beam-spark-0.1-SNAPSHOT-shaded.jar \
+--labels=job_name=bartek-myloggingjobwithsideinput \
+-- \
+--runner=SparkRunner
+
+# MyCountingJob
+gcloud dataproc jobs submit spark --cluster=bartek-beam-on-spark --region=us-central1 \
+--class=com.bawi.beam.MyCountingJob \
+--files "gs://${GCP_PROJECT}-bartek-dataproc/log4j.properties#log4j.properties" \
+--jars=gs://${GCP_PROJECT}-bartek-dataproc/my-apache-beam-spark-0.1-SNAPSHOT-shaded.jar \
+--labels=job_name=bartek-mycountingjob \
+-- \
+--runner=SparkRunner
+
+
 
 # MyMultiOutputJob
 gcloud dataproc jobs submit spark --cluster=bartek-beam-on-spark --region=us-central1 \
@@ -54,12 +83,13 @@ gcloud dataproc jobs submit spark --cluster=bartek-beam-on-spark --region=us-cen
 --labels=job_name=bartek-mymultioutputjob \
 -- \
 --runner=SparkRunner \
+--cacheDisabled=true \
 --evenOutput=gs://${GCP_PROJECT}-bartek-dataproc/even.txt \
 --oddOutput=gs://${GCP_PROJECT}-bartek-dataproc/odd.txt
 
 
 # MyGCSToBQJob
-#gsutil cp target/myRecord.snappy.avro gs://${GCP_PROJECT}-bartek-dataproc/
+#gsutil cp src/test/resources/myRecord.snappy.avro gs://${GCP_PROJECT}-bartek-dataproc/
 bq mk --location US -d ${GCP_PROJECT}:bartek_person
 
 gcloud dataproc jobs submit spark --cluster=bartek-beam-on-spark --region=us-central1 \
@@ -136,6 +166,18 @@ gcloud dataproc batches submit --project ${GCP_PROJECT} --region us-central1 spa
  --evenOutput=gs://${GCP_PROJECT}-bartek-dataproc/even.txt \
  --oddOutput=gs://${GCP_PROJECT}-bartek-dataproc/odd.txt
 
+gcloud dataproc batches submit --project ${GCP_PROJECT} --region us-central1 spark \
+--batch bartek-batch-$RANDOM --class com.bawi.beam.MyGCSToBQJob --version 1.1 \
+--jars=gs://${GCP_PROJECT}-bartek-dataproc/my-apache-beam-spark-0.1-SNAPSHOT-shaded.jar \
+--subnet ${GCP_SUBNETWORK} --service-account ${GCP_SERVICE_ACCOUNT} \
+--history-server-cluster projects/${GCP_PROJECT}/regions/us-central1/clusters/bartek-persistent-history-server \
+--labels=job_name=bartek-mygcstobqjob \
+-- \
+--runner=SparkRunner \
+--input=gs://${GCP_PROJECT}-bartek-dataproc/myRecord.snappy.avro \
+--tableSpec=${GCP_PROJECT}:bartek_person.bartek_person_table \
+--tempLocation=gs://${GCP_PROJECT}-bartek-dataproc/temp
+
 
 # query metrics for spark serverless batch
 #metric.type="custom.googleapis.com/spark/driver/DAGScheduler/messageProcessingTime/count" AND resource.type="cloud_dataproc_batch" AND resource.label."batch_id"="bartek-batch-22191" AND resource.label."location"="us-central1"
@@ -156,3 +198,14 @@ curl -s \
   --header 'Accept: application/json' \
   --compressed \
   | jq -r ".timeSeries[0].points[].value.doubleValue" | sort -n
+
+
+# Multi output caching
+#
+#org.apache.beam.runners.spark.translation.TransformTranslator:455
+#all = all.persist(level);
+
+#org.apache.beam.runners.spark.translation.TransformTranslator:463
+#all =
+#    all.mapToPair(TranslationUtils.getTupleTagEncodeFunction(coderMap))
+#        .persist(level)
